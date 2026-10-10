@@ -17,8 +17,8 @@ h1{font:600 2.5rem/1.1 Georgia,"Iowan Old Style",serif;letter-spacing:-.02em;mar
 .card{background:var(--card);border:1px solid var(--ln);border-radius:16px;padding:22px;margin:14px 0;box-shadow:0 1px 2px rgba(0,0,0,.04)}
 button{background:var(--ac);color:#fff;border:0;border-radius:10px;padding:9px 16px;font:inherit;font-size:.92rem;font-weight:500;cursor:pointer;margin:4px 8px 4px 0;transition:transform .1s,opacity .15s}
 button:hover{opacity:.9}button:active{transform:scale(.97)}button.s{background:transparent;color:var(--tx);box-shadow:inset 0 0 0 1px var(--ln)}button:disabled{opacity:.4}
-input[type=text],select{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--ln);border-radius:10px;background:var(--bg);color:var(--tx);outline:0}
-input:focus,select:focus{border-color:var(--ac)}label{display:block;margin:12px 0 4px;color:var(--mu);font-size:.85rem}
+input[type=text],input[type=number],textarea,select{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--ln);border-radius:10px;background:var(--bg);color:var(--tx);outline:0}textarea{resize:vertical;min-height:96px}
+input:focus,select:focus,textarea:focus{border-color:var(--ac)}label{display:block;margin:12px 0 4px;color:var(--mu);font-size:.85rem}
 .row{display:flex;gap:16px;flex-wrap:wrap}.row>div{flex:1;min-width:130px}
 table{border-collapse:collapse;width:100%;font-size:.9rem}td,th{border-bottom:1px solid var(--ln);padding:8px 4px;text-align:left;font-weight:400}th{color:var(--mu);font-size:.8rem}
 .ok{color:var(--ok);font-weight:600}.bad{color:var(--bad);font-weight:600}.mu{color:var(--mu);font-size:.85rem}canvas{max-width:100%;margin-top:12px;border-radius:8px}.scroll{overflow-x:auto}
@@ -28,26 +28,30 @@ table{border-collapse:collapse;width:100%;font-size:.9rem}td,th{border-bottom:1p
 <div class="top"><span class="logo">CSC</span><button id="theme" class="s"></button></div>
 <h1>Costas–Sidon Code</h1>
 <p class="sub">Звуковой матричный код: рабочие частоты образуют множество Сидона, начало сообщения отмечено массивом Костаса. Всё считается прямо в вашем браузере.</p>
-<div class="pills"><span>множества Сидона</span><span>массивы Костаса</span><span>от 0,5 с на сообщение</span><span>без серверов</span></div>
+<div class="pills"><span>множества Сидона</span><span>массивы Костаса</span><span>до 1000 символов</span><span>без серверов</span></div>
 
 <div class="card"><h2>Настройки</h2>
 <label for="grid">Сетка рабочих частот (11 тонов, по 3 в символе, 7 бит на символ)</label>
 <select id="grid"><option value="golomb">Линейка Голомба (множество Сидона)</option><option value="et">Эрдёш–Туран, p = 11 (множество Сидона)</option><option value="uni">Равномерная (для сравнения)</option></select>
-<label for="mode">Скорость (на втором устройстве должна быть такой же)</label><select id="mode"><option value="std">Стандарт: 0,09 с на символ, преамбула 10</option><option value="fast">Быстро: 0,05 с на символ, преамбула 6</option><option value="turbo">Турбо (экспериментально): 0,023 с на символ, преамбула 4; лучше с сеткой Голомба</option></select>
+<label for="mode">Скорость (приёмник определяет режим сам)</label><select id="mode"><option value="std">Стандарт: 0,09 с на символ, преамбула 10</option><option value="fast">Быстро: 0,05 с на символ, преамбула 6</option><option value="turbo">Турбо (экспериментально): 0,023 с на символ, преамбула 4; лучше с сеткой Голомба</option></select>
+<div class="row"><div><label for="thr">Порог автоускорения, символов</label><input type="number" id="thr" min="1" max="1000" value="200"><p class="mu">Если сообщение длиннее порога, оно звучит в режиме «Турбо». Значение 1000 отключает ускорение.</p></div>
+<div><label for="start">Начать код с секунды</label><input type="number" id="start" min="0" max="60" step="0.5" value="0"><p class="mu">Тишина перед кодом: успеть включить запись.</p></div></div>
 </div>
 
 <div class="card"><h2>1. Проверка теорем перебором</h2>
 <button id="bCheck">Проверить</button><div class="scroll" id="outCheck"></div></div>
 
 <div class="card"><h2>2. Закодировать текст в звук</h2>
-<label for="txt">Сообщение (до 63 символов; латиница, кириллица, цифры, знаки)</label><input type="text" id="txt" value="Zvuk QR 2026" maxlength="63">
-<div><button id="bPlay">▶ Проиграть</button><button id="bWav" class="s">Скачать WAV</button></div>
+<label for="txt">Сообщение (до 1000 символов; латиница, кириллица, цифры, знаки) <span id="cnt" style="float:right"></span></label><textarea id="txt" maxlength="1000" rows="4">Zvuk QR 2026</textarea>
+<div><button id="bPlay">▶ Проиграть</button><button id="bStop" class="s">■ Стоп</button><button id="bWav" class="s">Скачать WAV</button></div>
 <p class="mu" id="encInfo"></p><canvas id="qr" width="10" height="10"></canvas>
 <p class="mu">Матрица: строки — 11 рабочих частот, столбцы — время. Светлая часть — преамбула (массив Костаса), тёмная — данные.</p></div>
 
 <div class="card"><h2>3. Декодировать звук</h2>
+<div class="row"><div><label for="from">Анализировать с секунды записи</label><input type="number" id="from" min="0" max="600" step="0.5" value="0"></div>
+<div><label for="rec">Длительность записи с микрофона, с</label><input type="number" id="rec" min="3" max="300" value="8"></div></div>
 <div class="row"><div><label for="file">WAV/аудиофайл</label><input type="file" id="file" accept="audio/*"></div>
-<div><label>Микрофон (запись 8 секунд)</label><button id="bMic" class="s">Записать и декодировать</button></div></div>
+<div><label>Микрофон</label><button id="bMic" class="s">Записать и декодировать</button></div></div>
 <p id="decOut" class="mu">Для проверки на реальных устройствах: проиграйте звук на одном устройстве, а на другом запишите.</p></div>
 
 <div class="card"><h2>4. Эксперимент: доля ошибочных символов в модели канала</h2>
@@ -61,7 +65,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem}td,th{border-bottom:1p
 </main>
 <script>
 /*CORE*/
-const FS=44100,K=3,BITS=7,GOLOMB=[0,1,4,13,28,33,47,54,64,70,72];let N=4096,CT,ST,PRE,GRIDS;
+const FS=44100,K=3,BITS=7,MAXCH=1000,SEARCH=40,GOLOMB=[0,1,4,13,28,33,47,54,64,70,72];let N=4096,CT,ST,PRE,GRIDS;
 function primRoot(p){for(let g=2;g<p;g++){const s=new Set();let x=1;for(let i=1;i<p;i++){x=x*g%p;s.add(x)}if(s.size==p-1)return g}return 1}
 function welch(p){const g=primRoot(p),r=[];let x=1;for(let i=1;i<p;i++){x=x*g%p;r.push(x)}return r}
 function isCostas(a){const n=a.length;if([...a].sort((x,y)=>x-y).some((v,i)=>v!==i+1))return false;for(let h=1;h<n;h++){const s=new Set();for(let i=0;i<n-h;i++)s.add(a[i+h]-a[i]);if(s.size!==n-h)return false}return true}
@@ -80,21 +84,27 @@ function mags(sig,off,pos){return pos.map(b=>{let re=0,im=0;for(let n=0;n<N;n++)
 function decSym(sig,off,pos){if(off<0||off+N>sig.length)return -1;const m=mags(sig,off,pos);
 const top=m.map((v,i)=>[v,i]).sort((a,b)=>b[0]-a[0]).slice(0,K).map(e=>e[1]).sort((a,b)=>a-b);const r=CIDX[top.join(',')];return r===undefined?-1:r}
 const ALPH=" абвгдеёжзийклмнопрстуфхцчшщъыьэюя0123456789.,!?-:;()\"'/@+=%#&*_abcdefghijklmnopqrstuvwxyz",SHIFT=127;
-function crc7(a){let c=0;for(const v of a)for(let b=6;b>=0;b--){const f=((c>>6)&1)^((v>>b)&1);c=(c<<1)&127;if(f)c^=9}return c}
-function msgToSyms(t){let codes,mode=0;if(/^[\x20-\x7e]*$/.test(t))codes=Array.from(t,c=>c.charCodeAt(0));
+function crc14(a){let c=0;for(const v of a)for(let b=6;b>=0;b--){const f=((c>>13)&1)^((v>>b)&1);c=(c<<1)&16383;if(f)c^=0x805}return c}
+/* кадр: 2 символа заголовка (режим 1 бит + длина 13 бит), коды текста, 2 символа CRC-14 */
+function msgToSyms(t){t=t.replace(/\r?\n/g,' ');if([...t].length>MAXCH)throw new Error('Сообщение длиннее '+MAXCH+' символов');let codes,mode=0;if(/^[\x20-\x7e]*$/.test(t))codes=Array.from(t,c=>c.charCodeAt(0));
 else{mode=1;codes=[];for(const ch of t){const lo=ch.toLowerCase(),i=ALPH.indexOf(lo);if(i<0)throw new Error('Символ «'+ch+'» не поддерживается');if(lo!==ch)codes.push(SHIFT);codes.push(i)}}
-if(codes.length>63)throw new Error('Сообщение длиннее 63 символов звука');const s=[mode*64+codes.length,...codes];s.push(crc7(s));return s}
-function symsToMsg(s){if(s.some(v=>v<0||v>127))return{text:null,ok:false};const L=s[0]&63,mode=s[0]>>6;if(s.length!==L+2)return{text:null,ok:false};
-const ok=crc7(s.slice(0,L+1))===s[L+1],c=s.slice(1,L+1);let t='';
+const V=mode*8192+codes.length,s=[V>>7,V&127,...codes],c=crc14(s);s.push(c>>7,c&127);return s}
+function symsToMsg(s){if(s.length<4||s.some(v=>v<0||v>127))return{text:null,ok:false};const V=s[0]*128+s[1],L=V&8191,mode=V>>13;if(s.length!==L+4)return{text:null,ok:false};
+const ok=crc14(s.slice(0,L+2))===s[L+2]*128+s[L+3],c=s.slice(2,L+2);let t='';
 if(mode===0)t=String.fromCharCode(...c);else{let up=false;for(const v of c){if(v===SHIFT){up=true;continue}const ch=ALPH[v]??'?';t+=up?ch.toUpperCase():ch;up=false}}return{text:t,ok}}
-function buildSignal(text,pos){const gap=new Float64Array(Math.round(.05*FS));const fr=[gap,...PRE.map(f=>tone([pos[f-1]])),...msgToSyms(text).map(s=>encSym(s,pos)),gap];
-const out=new Float64Array(fr.reduce((a,f)=>a+f.length,0));let o=0;for(const f of fr){out.set(f,o);o+=f.length}return out}
-function findStart(sig,pos){const last=sig.length-PRE.length*N;if(last<0)return -1;
-const score=off=>{if(off<0||off>last)return -1;let t=0;for(let i=0;i<PRE.length;i++){const m=mags(sig,off+i*N,pos);t+=m[PRE[i]-1]/(m.reduce((a,b)=>a+b,0)+1e-12)}return t};
-const best=(lo,hi,st)=>{let b=lo,bs=-2;for(let o=lo;o<=hi;o+=st){const s=score(o);if(s>bs){bs=s;b=o}}return b};
-let b=best(0,last,512);b=best(b-512,b+512,32);return best(b-32,b+32,2)}
-function decodeSignal(sig,pos){const st=findStart(sig,pos);if(st<0)return{text:null,ok:false,start:-1};const p0=st+PRE.length*N,h=decSym(sig,p0,pos);
-if(h<0)return{text:null,ok:false,start:st};const s=[h];for(let i=1;i<(h&63)+2;i++)s.push(decSym(sig,p0+i*N,pos));return{...symsToMsg(s),start:st}}
+function buildSignal(text,pos,startSec){const syms=msgToSyms(text),lead=Math.round(((+startSec||0)+.05)*FS),tail=Math.round(.05*FS),out=new Float32Array(lead+(PRE.length+syms.length)*N+tail);let o=lead;
+for(const f of PRE){out.set(tone([pos[f-1]]),o);o+=N}for(const s of syms){out.set(encSym(s,pos),o);o+=N}return out}
+/* поиск начала: только в окне [from, from+SEARCH] секунд; грубо — по кадрам с шагом N/4 (каждый кадр считается один раз) */
+function findStart(sig,pos,from){const P=PRE.length,h=N>>2,lo=Math.max(0,Math.round((from||0)*FS)),last=sig.length-P*N,hi=Math.min(last,lo+Math.round(SEARCH*FS));if(last<0||hi<lo)return{off:-1,sc:0};
+const rs=m=>m.reduce((a,b)=>a+b,0)+1e-12,nF=Math.floor((hi-lo)/h)+1,E=[];for(let f=0;f<nF+4*(P-1);f++){const o=lo+f*h;E.push(o+N<=sig.length?mags(sig,o,pos):null)}
+let bs=-1,bf=0;for(let f=0;f<nF;f++){let t=0,ok=true;for(let i=0;i<P;i++){const m=E[f+4*i];if(!m){ok=false;break}t+=m[PRE[i]-1]/rs(m)}if(ok&&t>bs){bs=t;bf=f}}
+if(bs<0)return{off:-1,sc:0};
+const score=off=>{if(off<0||off>last)return -1;let t=0;for(let i=0;i<P;i++){const m=mags(sig,off+i*N,pos);t+=m[PRE[i]-1]/rs(m)}return t};
+const best=(a,z,st)=>{let b=a,s=-2;for(let o=a;o<=z;o+=st){const v=score(o);if(v>s){s=v;b=o}}return b};
+let b=lo+bf*h;b=best(b-h,b+h,32);b=best(b-32,b+32,2);const sc=score(b)/P;return sc<.3?{off:-1,sc}:{off:b,sc}}
+function decodeSignal(sig,pos,from){const f=findStart(sig,pos,from);if(f.off<0)return{text:null,ok:false,start:-1,sc:f.sc};const p0=f.off+PRE.length*N,a=decSym(sig,p0,pos),b=decSym(sig,p0+N,pos);
+if(a<0||b<0)return{text:null,ok:false,start:f.off,sc:f.sc};const L=(a*128+b)&8191;if(L>2*MAXCH)return{text:null,ok:false,start:f.off,sc:f.sc};
+const s=[a,b];for(let i=2;i<L+4;i++)s.push(decSym(sig,p0+i*N,pos));return{...symsToMsg(s),start:f.off,sc:f.sc}}
 /* канал */
 function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function gauss(r){return Math.sqrt(-2*Math.log(r()+1e-12))*Math.cos(2*Math.PI*r())}
@@ -116,37 +126,46 @@ function symErr(pos,a3,snr,n,span,seed){const r=mulberry(seed);let e=0;for(let t
 const $=id=>document.getElementById(id);let lastSig=null;
 const curPos=()=>GRIDS[$('grid').value];
 const tag=f=>f?'<span class="ok">да</span>':'<span class="bad">нет</span>';
-$('bCheck').onclick=()=>{const w=welch(11),u=GRIDS.uni,g=GRIDS.golomb,e=GRIDS.et;
+$('bCheck').onclick=()=>{setProfile($('mode').value);const w=welch(11),u=GRIDS.uni,g=GRIDS.golomb,e=GRIDS.et;
 const rows=[['Уэлч, p = 11: '+w.join(', ')+' — массив Костаса',tag(isCostas(w))],['Развёртка 1…10 — массив Костаса',tag(isCostas([1,2,3,4,5,6,7,8,9,10]))],
 ['Эрдёш–Туран, p = 5: '+erdos(5).join(', ')+' — множество Сидона',tag(isSidon(erdos(5)))],['Линейка Голомба (11 меток) — множество Сидона',tag(isSidon(GOLOMB))],['Равномерная сетка — множество Сидона',tag(isSidon(u))]];
 $('outCheck').innerHTML='<table>'+rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')+
 `</table><p><b>Призраки третьего порядка</b> (продукты 2fᵢ−fⱼ, fᵢ+fⱼ−fₖ, попавшие на рабочие частоты):</p><table><tr><th>Сетка</th><th>Совпадений</th></tr><tr><td>Равномерная</td><td>${collisions(u)}</td></tr><tr><td>Эрдёш–Туран</td><td>${collisions(e)}</td></tr><tr><td>Голомб</td><td>${collisions(g)}</td></tr></table>`};
-function drawQR(text,pos){const syms=msgToSyms(text),cols=PRE.length+syms.length,c=$('qr'),cs=10;c.width=cols*cs;c.height=11*cs;const g=c.getContext('2d'),st=getComputedStyle(document.documentElement);
-PRE.forEach((f,i)=>{g.fillStyle=st.getPropertyValue('--c2').trim();g.fillRect(i*cs,(f-1)*cs,cs-1,cs-1)});
-syms.forEach((s,j)=>{g.fillStyle=st.getPropertyValue('--c1').trim();COMBOS[s].forEach(r=>g.fillRect((PRE.length+j)*cs,r*cs,cs-1,cs-1))})}
-function prepare(){try{const t=$('txt').value,sig=buildSignal(t,curPos());lastSig=sig;drawQR(t,curPos());
-$('encInfo').textContent=`${msgToSyms(t).length} символов данных (заголовок, текст, CRC) + ${PRE.length} преамбулы, длительность ${(sig.length/FS).toFixed(2)} с.`;return sig}catch(e){$('encInfo').textContent=e.message;return null}}
-$('mode').onchange=()=>{setProfile($('mode').value);prepare();$('outCheck').innerHTML&&$('bCheck').click()};$('txt').oninput=prepare;$('grid').onchange=prepare;
-$('bPlay').onclick=()=>{const s=prepare();if(!s)return;const ctx=new (window.AudioContext||window.webkitAudioContext)({sampleRate:FS}),b=ctx.createBuffer(1,s.length,FS);
-b.getChannelData(0).set(Float32Array.from(s,v=>v*.8));const n=ctx.createBufferSource();n.buffer=b;n.connect(ctx.destination);n.start()};
+function drawQR(text,pos){const syms=msgToSyms(text),cols=PRE.length+syms.length,c=$('qr'),cs=Math.max(1,Math.min(10,Math.floor(4000/cols))),gp=cs>2?1:0;c.width=cols*cs;c.height=11*cs;const g=c.getContext('2d'),st=getComputedStyle(document.documentElement);
+PRE.forEach((f,i)=>{g.fillStyle=st.getPropertyValue('--c2').trim();g.fillRect(i*cs,(f-1)*cs,cs-gp,cs-gp)});
+syms.forEach((s,j)=>{g.fillStyle=st.getPropertyValue('--c1').trim();COMBOS[s].forEach(r=>g.fillRect((PRE.length+j)*cs,r*cs,cs-gp,cs-gp))})}
+const MN0={std:'Стандарт',fast:'Быстро',turbo:'Турбо'};
+function effMode(n){const thr=Math.max(1,Math.min(MAXCH,+$('thr').value||200));return n>thr?'turbo':$('mode').value}
+function fmtT(s){return s<90?s.toFixed(1)+' с':Math.floor(s/60)+' мин '+Math.round(s%60)+' с'}
+function prepare(){try{const t=$('txt').value.replace(/\r?\n/g,' '),n=[...t].length;$('cnt').textContent=n+' / '+MAXCH;const m=effMode(n);setProfile(m);const pos=curPos(),sig=buildSignal(t,pos,$('start').value);lastSig=sig;drawQR(t,pos);
+$('encInfo').innerHTML=`Режим: <b>${MN0[m]}</b>${m!==$('mode').value?' <span class="bad">(автоускорение: сообщение длиннее порога)</span>':''}. ${msgToSyms(t).length} символов данных (заголовок, текст, CRC) + ${PRE.length} преамбулы, длительность ${fmtT(sig.length/FS)}.`;return sig}catch(e){$('encInfo').textContent=e.message;return null}}
+$('mode').onchange=()=>{$('outCheck').innerHTML&&$('bCheck').click();prepare()};$('txt').oninput=prepare;$('grid').onchange=prepare;$('thr').oninput=prepare;$('start').oninput=prepare;
+let curSrc=null,curCtx=null;function stopPlay(){try{curSrc&&curSrc.stop()}catch(e){}curSrc=null;try{curCtx&&curCtx.close()}catch(e){}curCtx=null}
+$('bStop').onclick=stopPlay;
+$('bPlay').onclick=()=>{const s=prepare();if(!s)return;stopPlay();const ctx=new (window.AudioContext||window.webkitAudioContext)({sampleRate:FS}),b=ctx.createBuffer(1,s.length,FS);
+b.getChannelData(0).set(Float32Array.from(s,v=>v*.8));const n=ctx.createBufferSource();n.buffer=b;n.connect(ctx.destination);n.onended=()=>{if(curSrc===n)stopPlay()};n.start();curSrc=n;curCtx=ctx};
 function wavBlob(s){const n=s.length,buf=new ArrayBuffer(44+2*n),v=new DataView(buf),w=(o,t)=>[...t].forEach((c,i)=>v.setUint8(o+i,c.charCodeAt(0)));
 w(0,'RIFF');v.setUint32(4,36+2*n,true);w(8,'WAVEfmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,FS,true);v.setUint32(28,2*FS,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,2*n,true);
 for(let i=0;i<n;i++)v.setInt16(44+2*i,Math.max(-1,Math.min(1,s[i]*.8))*32767,true);return new Blob([buf],{type:'audio/wav'})}
 $('bWav').onclick=()=>{const s=prepare();if(!s)return;const a=document.createElement('a');a.href=URL.createObjectURL(wavBlob(s));a.download='csc_message.wav';a.click()};
 function resample(x,from){if(from===FS)return Float64Array.from(x);const n=Math.floor(x.length*FS/from),o=new Float64Array(n),r=from/FS;
 for(let i=0;i<n;i++){const t=i*r,j=Math.floor(t),f=t-j;o[i]=x[j]*(1-f)+(x[j+1]??x[j])*f}return o}
-function showDecoded(sig){$('decOut').textContent='Декодирую…';setTimeout(()=>{const r=decodeSignal(sig,curPos());
-$('decOut').innerHTML=r.text!==null?`Результат: <b>${r.text.replace(/</g,'&lt;')}</b> — контрольная сумма CRC-8 ${r.ok?'<span class="ok">сошлась</span>':'<span class="bad">НЕ сошлась</span> (сообщение искажено)'}`:
-'<span class="bad">Не удалось декодировать.</span> Проверьте выбранную сетку, громкость и расстояние между устройствами.'},30)}
+const MN={std:'Стандарт',fast:'Быстро',turbo:'Турбо'},esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;'),wait=()=>new Promise(r=>setTimeout(r,20));
+async function showDecoded(sig){const out=$('decOut'),from=Math.max(0,+$('from').value||0),sel=$('mode').value,order=[sel,...['std','fast','turbo'].filter(m=>m!==sel)];let best=null;
+for(const m of order){out.textContent='Ищу сообщение, режим «'+MN[m]+'»…';await wait();setProfile(m);const r=decodeSignal(sig,curPos(),from);
+if(r.text!==null&&r.ok){out.innerHTML='Результат: <b>'+esc(r.text)+'</b><br>режим «'+MN[m]+'» определён автоматически, контрольная сумма <span class="ok">сошлась</span>';return}
+if(r.text!==null&&(!best||r.sc>best.r.sc))best={r,m}}
+out.innerHTML=best?'Результат: <b>'+esc(best.r.text)+'</b> — контрольная сумма <span class="bad">НЕ сошлась</span> (сообщение искажено), режим «'+MN[best.m]+'»':
+'<span class="bad">Не удалось декодировать.</span> Проверьте сетку, громкость, расстояние и поле «Анализировать с секунды».'}
 $('file').onchange=async e=>{const f=e.target.files[0];if(!f)return;const ctx=new (window.AudioContext||window.webkitAudioContext)();
 try{const ab=await ctx.decodeAudioData(await f.arrayBuffer());showDecoded(resample(ab.getChannelData(0),ab.sampleRate))}catch(err){$('decOut').textContent='Не удалось прочитать файл: '+err.message}};
-$('bMic').onclick=async()=>{try{const st=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+$('bMic').onclick=async()=>{try{const R=Math.min(300,Math.max(3,Math.round(+$('rec').value)||8)),st=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
 const ctx=new (window.AudioContext||window.webkitAudioContext)(),src=ctx.createMediaStreamSource(st),pr=ctx.createScriptProcessor(4096,1,1),ch=[];
 pr.onaudioprocess=ev=>ch.push(new Float32Array(ev.inputBuffer.getChannelData(0)));src.connect(pr);pr.connect(ctx.destination);
-let t=8;$('decOut').textContent='Запись… 8 с (запустите воспроизведение на другом устройстве)';const iv=setInterval(()=>{t--;$('decOut').textContent=`Запись… осталось ${t} с`},1000);
+let t=R;$('decOut').textContent=`Запись… ${R} с (запустите воспроизведение на другом устройстве)`;const iv=setInterval(()=>{t--;$('decOut').textContent=`Запись… осталось ${t} с`},1000);
 setTimeout(()=>{clearInterval(iv);pr.disconnect();src.disconnect();st.getTracks().forEach(x=>x.stop());const all=new Float32Array(ch.reduce((a,c)=>a+c.length,0));let o=0;for(const c of ch){all.set(c,o);o+=c.length}
-const sr=ctx.sampleRate;ctx.close();showDecoded(resample(all,sr))},8000)}catch(e){$('decOut').textContent='Нет доступа к микрофону: '+e.message}};
-$('bSim').onclick=()=>{$('bSim').disabled=true;$('outSim').textContent='Считаю…';setTimeout(()=>{const a3=+$('a3').value,sp=+$('resp').value,snr=+$('snr').value,names={uni:'Равномерная',et:'Эрдёш–Туран',golomb:'Голомб'};
+const sr=ctx.sampleRate;ctx.close();showDecoded(resample(all,sr))},R*1000)}catch(e){$('decOut').textContent='Нет доступа к микрофону: '+e.message}};
+$('bSim').onclick=()=>{$('bSim').disabled=true;$('outSim').textContent='Считаю…';setTimeout(()=>{setProfile($('mode').value);const a3=+$('a3').value,sp=+$('resp').value,snr=+$('snr').value,names={uni:'Равномерная',et:'Эрдёш–Туран',golomb:'Голомб'};
 const rows=Object.keys(names).map(k=>`<tr><td>${names[k]}</td><td>${collisions(GRIDS[k])}</td><td>${(100*symErr(GRIDS[k],a3,snr,300,sp,1)).toFixed(1)} %</td></tr>`);
 $('outSim').innerHTML='<table><tr><th>Сетка</th><th>Призраков 3-го порядка</th><th>Ошибок на символ</th></tr>'+rows.join('')+'</table>';$('bSim').disabled=false},30)};
 const TH=['auto','light','dark'];let ti=0;try{ti=Math.max(0,TH.indexOf(localStorage.getItem('th')))}catch(e){}
