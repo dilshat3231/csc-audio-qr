@@ -5,29 +5,35 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Costas–Sidon Code — звуковой QR-код</title>
 <style>
-:root{--bg:#fff;--tx:#111;--mu:#777;--ac:#111;--ln:#e6e6e6;--ok:#16794a;--bad:#c0392b;--c1:#111;--c2:#cfcfcf}
-@media(prefers-color-scheme:dark){:root{--bg:#0e0e0f;--tx:#eee;--mu:#8a8a8f;--ac:#eee;--ln:#27272a;--ok:#5fd39a;--bad:#ff8080;--c1:#eee;--c2:#55555a}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.6 -apple-system,"Segoe UI",Roboto,sans-serif}
-main{max-width:680px;margin:0 auto;padding:56px 20px 80px}h1{font-size:1.5rem;font-weight:600;letter-spacing:-.02em;margin:0 0 6px}
-h2{font-size:.75rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--mu);margin:0 0 14px}
-.sub{color:var(--mu);margin:0 0 40px}.card{border-top:1px solid var(--ln);padding:26px 0}
-button{background:var(--ac);color:var(--bg);border:0;border-radius:999px;padding:9px 18px;font:inherit;font-size:.92rem;cursor:pointer;margin:4px 8px 4px 0}
-button.s{background:transparent;color:var(--tx);box-shadow:inset 0 0 0 1px var(--ln)}button:hover{opacity:.85}button:disabled{opacity:.4}
-input[type=text],select{font:inherit;width:100%;padding:9px 0;border:0;border-bottom:1px solid var(--ln);border-radius:0;background:transparent;color:var(--tx);outline:0}
-input:focus,select:focus{border-bottom-color:var(--tx)}label{display:block;margin:12px 0 2px;color:var(--mu);font-size:.85rem}
-.row{display:flex;gap:20px;flex-wrap:wrap}.row>div{flex:1;min-width:130px}
+:root{--bg:#faf9f5;--card:#fff;--tx:#1f1e1d;--mu:#6f6b63;--ac:#c4572f;--ln:#e8e4da;--ok:#2f7d4f;--bad:#c0392b;--c1:#c4572f;--c2:#d9d2c0}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#1c1b19;--card:#262522;--tx:#ece9e1;--mu:#a19c90;--ac:#e07a52;--ln:#3a3831;--ok:#6fd49a;--bad:#ff8a80;--c1:#e07a52;--c2:#5a564b}}
+:root[data-theme=dark]{--bg:#1c1b19;--card:#262522;--tx:#ece9e1;--mu:#a19c90;--ac:#e07a52;--ln:#3a3831;--ok:#6fd49a;--bad:#ff8a80;--c1:#e07a52;--c2:#5a564b}
+*{box-sizing:border-box}body{margin:0;color:var(--tx);font:16px/1.6 -apple-system,"Segoe UI",Roboto,sans-serif;background:radial-gradient(900px 420px at 85% -8%,color-mix(in srgb,var(--ac) 14%,transparent),transparent),var(--bg);min-height:100vh}
+main{max-width:720px;margin:0 auto;padding:28px 18px 80px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:34px}
+.logo{font:700 .95rem ui-monospace,Consolas,monospace;letter-spacing:.14em;color:var(--ac)}
+h1{font:600 2.5rem/1.1 Georgia,"Iowan Old Style",serif;letter-spacing:-.02em;margin:0 0 12px}h2{font:600 1.25rem Georgia,"Iowan Old Style",serif;margin:0 0 12px}
+.sub{color:var(--mu);margin:0 0 16px;max-width:560px}.pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px}
+.pills span{border:1px solid var(--ln);background:var(--card);border-radius:999px;padding:4px 12px;font-size:.82rem;color:var(--mu)}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:16px;padding:22px;margin:14px 0;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+button{background:var(--ac);color:#fff;border:0;border-radius:10px;padding:9px 16px;font:inherit;font-size:.92rem;font-weight:500;cursor:pointer;margin:4px 8px 4px 0;transition:transform .1s,opacity .15s}
+button:hover{opacity:.9}button:active{transform:scale(.97)}button.s{background:transparent;color:var(--tx);box-shadow:inset 0 0 0 1px var(--ln)}button:disabled{opacity:.4}
+input[type=text],select{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--ln);border-radius:10px;background:var(--bg);color:var(--tx);outline:0}
+input:focus,select:focus{border-color:var(--ac)}label{display:block;margin:12px 0 4px;color:var(--mu);font-size:.85rem}
+.row{display:flex;gap:16px;flex-wrap:wrap}.row>div{flex:1;min-width:130px}
 table{border-collapse:collapse;width:100%;font-size:.9rem}td,th{border-bottom:1px solid var(--ln);padding:8px 4px;text-align:left;font-weight:400}th{color:var(--mu);font-size:.8rem}
-.ok{color:var(--ok)}.bad{color:var(--bad)}.mu{color:var(--mu);font-size:.85rem}canvas{max-width:100%;margin-top:12px}.scroll{overflow-x:auto}
+.ok{color:var(--ok);font-weight:600}.bad{color:var(--bad);font-weight:600}.mu{color:var(--mu);font-size:.85rem}canvas{max-width:100%;margin-top:12px;border-radius:8px}.scroll{overflow-x:auto}
 </style>
 </head>
 <body><main>
+<div class="top"><span class="logo">CSC</span><button id="theme" class="s"></button></div>
 <h1>Costas–Sidon Code</h1>
 <p class="sub">Звуковой матричный код: рабочие частоты образуют множество Сидона, начало сообщения отмечено массивом Костаса. Всё считается прямо в вашем браузере.</p>
+<div class="pills"><span>множества Сидона</span><span>массивы Костаса</span><span>от 0,5 с на сообщение</span><span>без серверов</span></div>
 
 <div class="card"><h2>Настройки</h2>
 <label for="grid">Сетка рабочих частот (11 тонов, по 3 в символе, 7 бит на символ)</label>
 <select id="grid"><option value="golomb">Линейка Голомба (множество Сидона)</option><option value="et">Эрдёш–Туран, p = 11 (множество Сидона)</option><option value="uni">Равномерная (для сравнения)</option></select>
-<label for="mode">Скорость (на втором устройстве должна быть такой же)</label><select id="mode"><option value="std">Стандарт: 0,09 с на символ, преамбула 10</option><option value="fast">Быстро: 0,05 с на символ, преамбула 6</option></select>
+<label for="mode">Скорость (на втором устройстве должна быть такой же)</label><select id="mode"><option value="std">Стандарт: 0,09 с на символ, преамбула 10</option><option value="fast">Быстро: 0,05 с на символ, преамбула 6</option><option value="turbo">Турбо (экспериментально): 0,023 с на символ, преамбула 4; лучше с сеткой Голомба</option></select>
 </div>
 
 <div class="card"><h2>1. Проверка теорем перебором</h2>
@@ -64,10 +70,10 @@ const erdos=p=>Array.from({length:p},(_,k)=>2*p*k+(k*k)%p);
 function collisions(P){const S=new Set(P);let c=0;for(const i of P)for(const j of P)if(i!==j&&S.has(2*i-j))c++;
 for(let a=0;a<P.length;a++)for(let b=a+1;b<P.length;b++)for(const k of P)if(k!==P[a]&&k!==P[b]&&S.has(P[a]+P[b]-k))c++;return c}
 const COMBOS=[],CIDX={};for(let a=0;a<11;a++)for(let b=a+1;b<11;b++)for(let c=b+1;c<11;c++){CIDX[a+','+b+','+c]=COMBOS.length;COMBOS.push([a,b,c])}
-function setProfile(fast){N=fast?2048:4096;const o=fast?47:93,m=fast?3:5,st=fast?18:37;CT=new Float64Array(N);ST=new Float64Array(N);
-for(let n=0;n<N;n++){CT[n]=Math.cos(2*Math.PI*n/N);ST[n]=Math.sin(2*Math.PI*n/N)}PRE=welch(fast?7:11);
-GRIDS={uni:Array.from({length:11},(_,i)=>o+st*i),golomb:GOLOMB.map(x=>o+m*x),et:erdos(11).map(x=>o+x)}}
-setProfile(false);
+function setProfile(m){const[n,o,k,st,p]={std:[4096,93,5,37,11],fast:[2048,47,3,18,7],turbo:[1024,24,2,12,5]}[m||'std'];N=n;CT=new Float64Array(N);ST=new Float64Array(N);
+for(let i=0;i<N;i++){CT[i]=Math.cos(2*Math.PI*i/N);ST[i]=Math.sin(2*Math.PI*i/N)}PRE=welch(p);
+GRIDS={uni:Array.from({length:11},(_,i)=>o+st*i),golomb:GOLOMB.map(x=>o+k*x),et:erdos(11).map(x=>o+x)}}
+setProfile('std');
 function tone(bins){const x=new Float64Array(N);for(const b of bins)for(let n=0;n<N;n++)x[n]+=ST[(b*n)&(N-1)];for(let n=0;n<N;n++)x[n]/=bins.length;return x}
 const encSym=(s,pos)=>tone(COMBOS[s].map(i=>pos[i]));
 function mags(sig,off,pos){return pos.map(b=>{let re=0,im=0;for(let n=0;n<N;n++){const v=sig[off+n],k=(b*n)&(N-1);re+=v*CT[k];im+=v*ST[k]}return Math.hypot(re,im)})}
@@ -81,7 +87,7 @@ if(codes.length>63)throw new Error('Сообщение длиннее 63 сим�
 function symsToMsg(s){if(s.some(v=>v<0||v>127))return{text:null,ok:false};const L=s[0]&63,mode=s[0]>>6;if(s.length!==L+2)return{text:null,ok:false};
 const ok=crc7(s.slice(0,L+1))===s[L+1],c=s.slice(1,L+1);let t='';
 if(mode===0)t=String.fromCharCode(...c);else{let up=false;for(const v of c){if(v===SHIFT){up=true;continue}const ch=ALPH[v]??'?';t+=up?ch.toUpperCase():ch;up=false}}return{text:t,ok}}
-function buildSignal(text,pos){const gap=new Float64Array(Math.round(.1*FS));const fr=[gap,...PRE.map(f=>tone([pos[f-1]])),...msgToSyms(text).map(s=>encSym(s,pos)),gap];
+function buildSignal(text,pos){const gap=new Float64Array(Math.round(.05*FS));const fr=[gap,...PRE.map(f=>tone([pos[f-1]])),...msgToSyms(text).map(s=>encSym(s,pos)),gap];
 const out=new Float64Array(fr.reduce((a,f)=>a+f.length,0));let o=0;for(const f of fr){out.set(f,o);o+=f.length}return out}
 function findStart(sig,pos){const last=sig.length-PRE.length*N;if(last<0)return -1;
 const score=off=>{if(off<0||off>last)return -1;let t=0;for(let i=0;i<PRE.length;i++){const m=mags(sig,off+i*N,pos);t+=m[PRE[i]-1]/(m.reduce((a,b)=>a+b,0)+1e-12)}return t};
@@ -120,7 +126,7 @@ PRE.forEach((f,i)=>{g.fillStyle=st.getPropertyValue('--c2').trim();g.fillRect(i*
 syms.forEach((s,j)=>{g.fillStyle=st.getPropertyValue('--c1').trim();COMBOS[s].forEach(r=>g.fillRect((PRE.length+j)*cs,r*cs,cs-1,cs-1))})}
 function prepare(){try{const t=$('txt').value,sig=buildSignal(t,curPos());lastSig=sig;drawQR(t,curPos());
 $('encInfo').textContent=`${msgToSyms(t).length} символов данных (заголовок, текст, CRC) + ${PRE.length} преамбулы, длительность ${(sig.length/FS).toFixed(2)} с.`;return sig}catch(e){$('encInfo').textContent=e.message;return null}}
-$('mode').onchange=()=>{setProfile($('mode').value==='fast');prepare();$('outCheck').innerHTML&&$('bCheck').click()};$('txt').oninput=prepare;$('grid').onchange=prepare;
+$('mode').onchange=()=>{setProfile($('mode').value);prepare();$('outCheck').innerHTML&&$('bCheck').click()};$('txt').oninput=prepare;$('grid').onchange=prepare;
 $('bPlay').onclick=()=>{const s=prepare();if(!s)return;const ctx=new (window.AudioContext||window.webkitAudioContext)({sampleRate:FS}),b=ctx.createBuffer(1,s.length,FS);
 b.getChannelData(0).set(Float32Array.from(s,v=>v*.8));const n=ctx.createBufferSource();n.buffer=b;n.connect(ctx.destination);n.start()};
 function wavBlob(s){const n=s.length,buf=new ArrayBuffer(44+2*n),v=new DataView(buf),w=(o,t)=>[...t].forEach((c,i)=>v.setUint8(o+i,c.charCodeAt(0)));
@@ -143,6 +149,9 @@ const sr=ctx.sampleRate;ctx.close();showDecoded(resample(all,sr))},8000)}catch(e
 $('bSim').onclick=()=>{$('bSim').disabled=true;$('outSim').textContent='Считаю…';setTimeout(()=>{const a3=+$('a3').value,sp=+$('resp').value,snr=+$('snr').value,names={uni:'Равномерная',et:'Эрдёш–Туран',golomb:'Голомб'};
 const rows=Object.keys(names).map(k=>`<tr><td>${names[k]}</td><td>${collisions(GRIDS[k])}</td><td>${(100*symErr(GRIDS[k],a3,snr,300,sp,1)).toFixed(1)} %</td></tr>`);
 $('outSim').innerHTML='<table><tr><th>Сетка</th><th>Призраков 3-го порядка</th><th>Ошибок на символ</th></tr>'+rows.join('')+'</table>';$('bSim').disabled=false},30)};
-$('bCheck').click();prepare();
+const TH=['auto','light','dark'];let ti=0;try{ti=Math.max(0,TH.indexOf(localStorage.getItem('th')))}catch(e){}
+function applyTheme(){document.documentElement.dataset.theme=ti?TH[ti]:'';$('theme').textContent=['◐ Авто','☀ Светлая','☾ Тёмная'][ti]}
+$('theme').onclick=()=>{ti=(ti+1)%3;try{localStorage.setItem('th',TH[ti])}catch(e){}applyTheme();prepare()};
+applyTheme();$('bCheck').click();prepare();
 </script>
 </body></html>
