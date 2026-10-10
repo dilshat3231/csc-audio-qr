@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Costas–Sidon Code — звуковой QR-код</title>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--tx:#1b1f2a;--mu:#5d6577;--ac:#4455e8;--ok:#14804a;--bad:#c23b3b;--bd:#dfe2ec;--c1:#4455e8;--c2:#e8884a}
+@media(prefers-color-scheme:dark){:root{--bg:#12141c;--card:#1b1f2b;--tx:#e8eaf2;--mu:#98a0b5;--ac:#7c8bff;--ok:#4fd18b;--bad:#ff7a7a;--bd:#2c3243;--c1:#7c8bff;--c2:#f0a066}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.55 system-ui,Segoe UI,Roboto,sans-serif}
+main{max-width:860px;margin:0 auto;padding:24px 16px 60px}h1{font-size:1.7rem;margin:.2em 0}h2{font-size:1.15rem;margin:0 0 10px}
+.sub{color:var(--mu);margin:0 0 20px}.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:18px;margin:16px 0}
+button{background:var(--ac);color:#fff;border:0;border-radius:8px;padding:9px 14px;font:inherit;cursor:pointer;margin:4px 6px 4px 0}
+button.s{background:transparent;color:var(--ac);border:1px solid var(--ac)}button:disabled{opacity:.5}
+input[type=text],select{font:inherit;padding:8px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);max-width:100%}
+input[type=text]{width:100%}label{display:block;margin:8px 0 4px;color:var(--mu);font-size:.9rem}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:end}.row>div{flex:1;min-width:150px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}td,th{border-bottom:1px solid var(--bd);padding:6px 8px;text-align:left}
+.ok{color:var(--ok);font-weight:600}.bad{color:var(--bad);font-weight:600}.mu{color:var(--mu);font-size:.9rem}
+canvas{max-width:100%;border:1px solid var(--bd);border-radius:8px;background:var(--bg)}
+pre{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:10px;overflow-x:auto;margin:8px 0}
+.scroll{overflow-x:auto}
+</style>
+</head>
+<body><main>
+<h1>Costas–Sidon Code</h1>
+<p class="sub">Звуковой матричный код: рабочие частоты образуют множество Сидона, начало сообщения отмечено массивом Костаса. Всё считается прямо в вашем браузере.</p>
+
+<div class="card"><h2>Настройки</h2>
+<label for="grid">Сетка рабочих частот (11 тонов, по 3 в символе, 7 бит на символ)</label>
+<select id="grid"><option value="golomb">Линейка Голомба (множество Сидона)</option><option value="et">Эрдёш–Туран, p = 11 (множество Сидона)</option><option value="uni">Равномерная (для сравнения)</option></select>
+</div>
+
+<div class="card"><h2>1. Проверка теорем перебором</h2>
+<button id="bCheck">Проверить</button><div class="scroll" id="outCheck"></div></div>
+
+<div class="card"><h2>2. Закодировать текст в звук</h2>
+<label for="txt">Сообщение (до 255 байт)</label><input type="text" id="txt" value="Zvuk QR 2026" maxlength="120">
+<div><button id="bPlay">▶ Проиграть</button><button id="bWav" class="s">Скачать WAV</button></div>
+<p class="mu" id="encInfo"></p><canvas id="qr" width="10" height="10"></canvas>
+<p class="mu">Матрица: строки — 11 рабочих частот, столбцы — время. Оранжевая часть — преамбула (массив Костаса), синяя — данные.</p></div>
+
+<div class="card"><h2>3. Декодировать звук</h2>
+<div class="row"><div><label for="file">WAV/аудиофайл</label><input type="file" id="file" accept="audio/*"></div>
+<div><label>Микрофон (запись 8 секунд)</label><button id="bMic" class="s">🎤 Записать и декодировать</button></div></div>
+<p id="decOut" class="mu">Для проверки на реальных устройствах: проиграйте звук на одном устройстве, а на другом запишите.</p></div>
+
+<div class="card"><h2>4. Эксперимент: доля ошибочных символов в модели канала</h2>
+<div class="row"><div><label for="a3">Нелинейность a₃</label><select id="a3"><option>0</option><option>0.5</option><option>1</option><option selected>2</option><option>3</option></select></div>
+<div><label for="resp">Размах АЧХ, дБ</label><select id="resp"><option>0</option><option>8</option><option>20</option><option selected>30</option></select></div>
+<div><label for="snr">ОСШ, дБ</label><select id="snr"><option>0</option><option selected>20</option><option>30</option></select></div></div>
+<button id="bSim">Запустить (по 300 символов на сетку)</button><div class="scroll" id="outSim"></div>
+<p class="mu">Это компьютерное моделирование (степенной динамик y = x + a₂x² + a₃x³, a₂ = 0,2), а не измерение на реальных телефонах. Цифры зависят от параметров модели.</p></div>
+
+<p class="mu">Теория: теорема Уэлча (массивы Костаса), теорема Эрдёша–Турана (множества Сидона), и утверждение, что на множестве Сидона продукты нелинейности третьего порядка 2fᵢ−fⱼ и fᵢ+fⱼ−fₖ не попадают на рабочие частоты.</p>
+</main>
+<script>
+/*CORE*/
+const FS=44100,N=4096,DF=FS/N,K=3,BITS=7,OFF=93,GOLOMB=[0,1,4,13,28,33,47,54,64,70,72];
+function primRoot(p){for(let g=2;g<p;g++){const s=new Set();let x=1;for(let i=1;i<p;i++){x=x*g%p;s.add(x)}if(s.size==p-1)return g}return 1}
+function welch(p){const g=primRoot(p),r=[];let x=1;for(let i=1;i<p;i++){x=x*g%p;r.push(x)}return r}
+function isCostas(a){const n=a.length;if([...a].sort((x,y)=>x-y).some((v,i)=>v!==i+1))return false;for(let h=1;h<n;h++){const s=new Set();for(let i=0;i<n-h;i++)s.add(a[i+h]-a[i]);if(s.size!==n-h)return false}return true}
+function isSidon(a){const s=new Set();let c=0;for(let i=0;i<a.length;i++)for(let j=i;j<a.length;j++){s.add(a[i]+a[j]);c++}return s.size===c}
+const erdos=p=>Array.from({length:p},(_,k)=>2*p*k+(k*k)%p);
+function collisions(P){const S=new Set(P);let c=0;for(const i of P)for(const j of P)if(i!==j&&S.has(2*i-j))c++;
+for(let a=0;a<P.length;a++)for(let b=a+1;b<P.length;b++)for(const k of P)if(k!==P[a]&&k!==P[b]&&S.has(P[a]+P[b]-k))c++;return c}
+const GRIDS={uni:Array.from({length:11},(_,i)=>OFF+37*i),golomb:GOLOMB.map(m=>OFF+5*m),et:erdos(11).map(x=>OFF+x)};
+const COMBOS=[],CIDX={};for(let a=0;a<11;a++)for(let b=a+1;b<11;b++)for(let c=b+1;c<11;c++){CIDX[a+','+b+','+c]=COMBOS.length;COMBOS.push([a,b,c])}
+const CT=new Float64Array(N),ST=new Float64Array(N);for(let n=0;n<N;n++){CT[n]=Math.cos(2*Math.PI*n/N);ST[n]=Math.sin(2*Math.PI*n/N)}
+const PRE=welch(11);
+function tone(bins){const x=new Float64Array(N);for(const b of bins)for(let n=0;n<N;n++)x[n]+=ST[(b*n)&(N-1)];for(let n=0;n<N;n++)x[n]/=bins.length;return x}
+const encSym=(s,pos)=>tone(COMBOS[s].map(i=>pos[i]));
+function mags(sig,off,pos){return pos.map(b=>{let re=0,im=0;for(let n=0;n<N;n++){const v=sig[off+n],k=(b*n)&(N-1);re+=v*CT[k];im+=v*ST[k]}return Math.hypot(re,im)})}
+function decSym(sig,off,pos){if(off<0||off+N>sig.length)return -1;const m=mags(sig,off,pos);
+const top=m.map((v,i)=>[v,i]).sort((a,b)=>b[0]-a[0]).slice(0,K).map(e=>e[1]).sort((a,b)=>a-b);const r=CIDX[top.join(',')];return r===undefined?-1:r}
+function crc8(d){let c=0;for(const b of d){c^=b;for(let i=0;i<8;i++)c=(c&128)?((c<<1)^7)&255:(c<<1)&255}return c}
+function msgToSyms(text){const d=Array.from(new TextEncoder().encode(text));if(d.length>255)throw new Error('Сообщение длиннее 255 байт');
+const p=[d.length,...d];p.push(crc8(p));let bits=p.map(b=>b.toString(2).padStart(8,'0')).join('');bits+='0'.repeat((BITS-bits.length%BITS)%BITS);
+const out=[];for(let i=0;i<bits.length;i+=BITS)out.push(parseInt(bits.slice(i,i+BITS),2));return out}
+function symsToMsg(s){if(s.some(v=>v<0||v>=128))return{text:null,ok:false};const bits=s.map(v=>v.toString(2).padStart(7,'0')).join('');
+const raw=[];for(let i=0;i+8<=bits.length;i+=8)raw.push(parseInt(bits.slice(i,i+8),2));if(!raw.length)return{text:null,ok:false};
+const n=raw[0];if(raw.length<n+2)return{text:null,ok:false};const pl=raw.slice(0,n+1),ok=crc8(pl)===raw[n+1];
+try{return{text:new TextDecoder('utf-8',{fatal:true}).decode(Uint8Array.from(pl.slice(1))),ok}}catch(e){return{text:null,ok:false}}}
+function buildSignal(text,pos){const gap=new Float64Array(Math.round(.2*FS));const fr=[gap,...PRE.map(f=>tone([pos[f-1]])),...msgToSyms(text).map(s=>encSym(s,pos)),gap];
+const out=new Float64Array(fr.reduce((a,f)=>a+f.length,0));let o=0;for(const f of fr){out.set(f,o);o+=f.length}return out}
+function findStart(sig,pos){const last=sig.length-PRE.length*N;if(last<0)return -1;
+const score=off=>{if(off<0||off>last)return -1;let t=0;for(let i=0;i<PRE.length;i++){const m=mags(sig,off+i*N,pos);t+=m[PRE[i]-1]/(m.reduce((a,b)=>a+b,0)+1e-12)}return t};
+const best=(lo,hi,st)=>{let b=lo,bs=-2;for(let o=lo;o<=hi;o+=st){const s=score(o);if(s>bs){bs=s;b=o}}return b};
+let b=best(0,last,512);b=best(b-512,b+512,32);return best(b-32,b+32,2)}
+function decodeSignal(sig,pos){const st=findStart(sig,pos);if(st<0)return{text:null,ok:false,start:-1};const p0=st+PRE.length*N;
+const f=[decSym(sig,p0,pos),decSym(sig,p0+N,pos)];if(f.includes(-1))return{text:null,ok:false,start:st};
+const n=parseInt(f.map(v=>v.toString(2).padStart(7,'0')).join('').slice(0,8),2),ns=Math.ceil(8*(n+2)/BITS),s=[];
+for(let i=0;i<ns;i++)s.push(decSym(sig,p0+i*N,pos));return{...symsToMsg(s),start:st}}
+/* канал */
+function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(r){return Math.sqrt(-2*Math.log(r()+1e-12))*Math.cos(2*Math.PI*r())}
+function fft(re,im,inv){const n=re.length;for(let i=1,j=0;i<n;i++){let b=n>>1;for(;j&b;b>>=1)j^=b;j^=b;if(i<j){[re[i],re[j]]=[re[j],re[i]];[im[i],im[j]]=[im[j],im[i]]}}
+for(let l=2;l<=n;l<<=1){const a=2*Math.PI/l*(inv?1:-1),wr=Math.cos(a),wi=Math.sin(a);for(let i=0;i<n;i+=l){let cr=1,ci=0;for(let k=0;k<l/2;k++){const u=i+k,v=u+l/2,xr=re[v]*cr-im[v]*ci,xi=re[v]*ci+im[v]*cr;re[v]=re[u]-xr;im[v]=im[u]-xi;re[u]+=xr;im[u]+=xi;const t=cr*wr-ci*wi;ci=cr*wi+ci*wr;cr=t}}}
+if(inv)for(let i=0;i<n;i++){re[i]/=n;im[i]/=n}}
+function response(x,span,r){if(span<=0)return x;const n=x.length,re=Float64Array.from(x),im=new Float64Array(n);fft(re,im,false);
+const h=n/2+1,nn=Math.floor(h/20)+2,nodes=Array.from({length:nn},()=>gauss(r)),cv=new Float64Array(h);
+for(let k=0;k<h;k++){const t=k/(h-1)*(nn-1),i=Math.min(Math.floor(t),nn-2);cv[k]=nodes[i]+(nodes[i+1]-nodes[i])*(t-i)}
+let mn=Infinity,mx=-Infinity;for(const v of cv){mn=Math.min(mn,v);mx=Math.max(mx,v)}
+for(let k=0;k<h;k++){const g=Math.pow(10,(((cv[k]-mn)/(mx-mn+1e-12))*span-span/2)/20);re[k]*=g;im[k]*=g;if(k>0&&k<n/2){re[n-k]*=g;im[n-k]*=g}}
+fft(re,im,true);return re}
+const nonlin=(x,a2,a3)=>x.map(v=>v+a2*v*v+a3*v*v*v);
+function addNoise(x,snr,r){let p=0;for(const v of x)p+=v*v;p/=x.length;const s=Math.sqrt(p/Math.pow(10,snr/10));return x.map(v=>v+s*gauss(r))}
+function symErr(pos,a3,snr,n,span,seed){const r=mulberry(seed);let e=0;for(let t=0;t<n;t++){const s=Math.floor(r()*128);let y=nonlin(encSym(s,pos),.2,a3);y=response(y,span,r);y=addNoise(y,snr,r);if(decSym(y,0,pos)!==s)e++}return e/n}
+/*ENDCORE*/
+
+/* ---------- интерфейс ---------- */
+const $=id=>document.getElementById(id);let lastSig=null;
+const curPos=()=>GRIDS[$('grid').value];
+const tag=f=>f?'<span class="ok">да</span>':'<span class="bad">нет</span>';
+$('bCheck').onclick=()=>{const w=welch(11),u=GRIDS.uni,g=GRIDS.golomb,e=GRIDS.et;
+const rows=[['Уэлч, p = 11: '+w.join(', ')+' — массив Костаса',tag(isCostas(w))],['Развёртка 1…10 — массив Костаса',tag(isCostas([1,2,3,4,5,6,7,8,9,10]))],
+['Эрдёш–Туран, p = 5: '+erdos(5).join(', ')+' — множество Сидона',tag(isSidon(erdos(5)))],['Линейка Голомба (11 меток) — множество Сидона',tag(isSidon(GOLOMB))],['Равномерная сетка — множество Сидона',tag(isSidon(u))]];
+$('outCheck').innerHTML='<table>'+rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')+
+`</table><p><b>Призраки третьего порядка</b> (продукты 2fᵢ−fⱼ, fᵢ+fⱼ−fₖ, попавшие на рабочие частоты):</p><table><tr><th>Сетка</th><th>Совпадений</th></tr><tr><td>Равномерная</td><td>${collisions(u)}</td></tr><tr><td>Эрдёш–Туран</td><td>${collisions(e)}</td></tr><tr><td>Голомб</td><td>${collisions(g)}</td></tr></table>`};
+function drawQR(text,pos){const syms=msgToSyms(text),cols=PRE.length+syms.length,c=$('qr'),cs=10;c.width=cols*cs;c.height=11*cs;const g=c.getContext('2d'),st=getComputedStyle(document.documentElement);
+PRE.forEach((f,i)=>{g.fillStyle=st.getPropertyValue('--c2');g.fillRect(i*cs,(f-1)*cs,cs-1,cs-1)});
+syms.forEach((s,j)=>{g.fillStyle=st.getPropertyValue('--c1');COMBOS[s].forEach(r=>g.fillRect((PRE.length+j)*cs,r*cs,cs-1,cs-1))})}
+function prepare(){try{const t=$('txt').value,sig=buildSignal(t,curPos());lastSig=sig;drawQR(t,curPos());
+$('encInfo').textContent=`${msgToSyms(t).length} символов данных + 10 символов преамбулы, длительность ${(sig.length/FS).toFixed(2)} с.`;return sig}catch(e){$('encInfo').textContent=e.message;return null}}
+$('txt').oninput=prepare;$('grid').onchange=prepare;
+$('bPlay').onclick=()=>{const s=prepare();if(!s)return;const ctx=new (window.AudioContext||window.webkitAudioContext)({sampleRate:FS}),b=ctx.createBuffer(1,s.length,FS);
+b.getChannelData(0).set(Float32Array.from(s,v=>v*.8));const n=ctx.createBufferSource();n.buffer=b;n.connect(ctx.destination);n.start()};
+function wavBlob(s){const n=s.length,buf=new ArrayBuffer(44+2*n),v=new DataView(buf),w=(o,t)=>[...t].forEach((c,i)=>v.setUint8(o+i,c.charCodeAt(0)));
+w(0,'RIFF');v.setUint32(4,36+2*n,true);w(8,'WAVEfmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,FS,true);v.setUint32(28,2*FS,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,2*n,true);
+for(let i=0;i<n;i++)v.setInt16(44+2*i,Math.max(-1,Math.min(1,s[i]*.8))*32767,true);return new Blob([buf],{type:'audio/wav'})}
+$('bWav').onclick=()=>{const s=prepare();if(!s)return;const a=document.createElement('a');a.href=URL.createObjectURL(wavBlob(s));a.download='csc_message.wav';a.click()};
+function resample(x,from){if(from===FS)return Float64Array.from(x);const n=Math.floor(x.length*FS/from),o=new Float64Array(n),r=from/FS;
+for(let i=0;i<n;i++){const t=i*r,j=Math.floor(t),f=t-j;o[i]=x[j]*(1-f)+(x[j+1]??x[j])*f}return o}
+function showDecoded(sig){$('decOut').textContent='Декодирую…';setTimeout(()=>{const r=decodeSignal(sig,curPos());
+$('decOut').innerHTML=r.text!==null?`Результат: <b>${r.text.replace(/</g,'&lt;')}</b> — контрольная сумма CRC-8 ${r.ok?'<span class="ok">сошлась</span>':'<span class="bad">НЕ сошлась</span> (сообщение искажено)'}`:
+'<span class="bad">Не удалось декодировать.</span> Проверьте выбранную сетку, громкость и расстояние между устройствами.'},30)}
+$('file').onchange=async e=>{const f=e.target.files[0];if(!f)return;const ctx=new (window.AudioContext||window.webkitAudioContext)();
+try{const ab=await ctx.decodeAudioData(await f.arrayBuffer());showDecoded(resample(ab.getChannelData(0),ab.sampleRate))}catch(err){$('decOut').textContent='Не удалось прочитать файл: '+err.message}};
+$('bMic').onclick=async()=>{try{const st=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+const ctx=new (window.AudioContext||window.webkitAudioContext)(),src=ctx.createMediaStreamSource(st),pr=ctx.createScriptProcessor(4096,1,1),ch=[];
+pr.onaudioprocess=ev=>ch.push(new Float32Array(ev.inputBuffer.getChannelData(0)));src.connect(pr);pr.connect(ctx.destination);
+let t=8;$('decOut').textContent='Запись… 8 с (запустите воспроизведение на другом устройстве)';const iv=setInterval(()=>{t--;$('decOut').textContent=`Запись… осталось ${t} с`},1000);
+setTimeout(()=>{clearInterval(iv);pr.disconnect();src.disconnect();st.getTracks().forEach(x=>x.stop());const all=new Float32Array(ch.reduce((a,c)=>a+c.length,0));let o=0;for(const c of ch){all.set(c,o);o+=c.length}
+const sr=ctx.sampleRate;ctx.close();showDecoded(resample(all,sr))},8000)}catch(e){$('decOut').textContent='Нет доступа к микрофону: '+e.message}};
+$('bSim').onclick=()=>{$('bSim').disabled=true;$('outSim').textContent='Считаю…';setTimeout(()=>{const a3=+$('a3').value,sp=+$('resp').value,snr=+$('snr').value,names={uni:'Равномерная',et:'Эрдёш–Туран',golomb:'Голомб'};
+const rows=Object.keys(names).map(k=>`<tr><td>${names[k]}</td><td>${collisions(GRIDS[k])}</td><td>${(100*symErr(GRIDS[k],a3,snr,300,sp,1)).toFixed(1)} %</td></tr>`);
+$('outSim').innerHTML='<table><tr><th>Сетка</th><th>Призраков 3-го порядка</th><th>Ошибок на символ</th></tr>'+rows.join('')+'</table>';$('bSim').disabled=false},30)};
+$('bCheck').click();prepare();
+</script>
+</body></html>
